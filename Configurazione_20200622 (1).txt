@@ -1,0 +1,2913 @@
+/config/license/JUNOS579149.lic:1:(0) JUNOS579149: invalid signature: cannot validate /etc/db/certs/FeatureLicense-v4.pem
+subject issuer mismatch: /C=US/ST=CA/L=Sunnyvale/O=Juniper Networks/OU=Juniper CA/CN=PackageCA/emailAddress=ca@juniper.net
+/config/license/JUNOS587085.lic:1:(0) JUNOS587085: invalid signature: cannot validate /etc/db/certs/FeatureLicense-v4.pem
+subject issuer mismatch: /C=US/ST=CA/L=Sunnyvale/O=Juniper Networks/OU=Juniper CA/CN=PackageCA/emailAddress=ca@juniper.net
+/config/license/JUNOS595583.lic:1:(0) JUNOS595583: invalid signature: cannot validate /etc/db/certs/FeatureLicense-v4.pem
+subject issuer mismatch: /C=US/ST=CA/L=Sunnyvale/O=Juniper Networks/OU=Juniper CA/CN=PackageCA/emailAddress=ca@juniper.net
+/config/license/JUNOS619944.lic:1:(0) JUNOS619944: invalid signature: cannot validate /etc/db/certs/FeatureLicense-v4.pem
+subject issuer mismatch: /C=US/ST=CA/L=Sunnyvale/O=Juniper Networks/OU=Juniper CA/CN=PackageCA/emailAddress=ca@juniper.net
+version 11.2R4.3;
+groups {
+    node0 {
+        system {
+            host-name srx-5t-to-node0;
+        }
+        interfaces {
+            fxp0 {
+                description "Porta di Management locale - ex ge-0/0/0 del nodo0";
+                unit 0 {
+                    family inet {
+                        address 192.168.255.1/24;
+                    }
+                }
+            }
+        }
+    }
+    node1 {
+        system {
+            host-name srx-5t-to-node1;
+        }
+        interfaces {
+            fxp0 {
+                description "Porta di Management locale - ex ge-0/0/0 del nodo1";
+                unit 0 {
+                    family inet {
+                        address 192.168.255.2/24;
+                    }
+                }
+            }
+        }
+    }
+}
+apply-groups "${node}";
+/* Password per accesso root */
+system {
+    time-zone Europe/Rome;
+    root-authentication {
+        encrypted-password "$1$vJ8rjWms$QgWgaYWKT11xovPgP/Sjg0"; ## SECRET-DATA
+    }
+    name-server {
+        208.67.222.222;
+        208.67.220.220;
+    }
+    login {
+        user biptoadm {
+            uid 2001;
+            class super-user;
+            authentication {
+                encrypted-password "$1$cP0GhgKP$jCht9Eesb.EFy/6ocaR4R."; ## SECRET-DATA
+            }
+        }
+        user sxe {
+            uid 2000;
+            class super-user;
+            authentication {
+                encrypted-password "$1$QOkHXavz$CjaKyuaJqbmYTCEX/zHBs/"; ## SECRET-DATA
+            }
+        }
+    }
+    services {
+        /* E' possibile accedere al cluster in ssh v2 - max 5 connessioni e in https */
+        ssh {
+            protocol-version v2;
+            connection-limit 5;
+        }
+        xnm-clear-text;
+        web-management {
+            https {
+                system-generated-certificate;
+                interface [ reth1.0 reth2.0 reth0.0 ];
+            }
+        }
+    }
+    syslog {
+        archive size 100k files 3;
+        user * {
+            any emergency;
+        }
+        file messages {
+            any critical;
+            authorization info;
+        }
+        file interactive-commands {
+            interactive-commands error;
+        }
+        file policy_session {
+            user info;
+            match RT_FLOW;
+            archive size 1000k world-readable;
+            structured-data;
+        }
+        file kmd-logs {
+            daemon info;
+            match KMD;
+        }
+    }
+    max-configurations-on-flash 20;
+    max-configuration-rollbacks 5;
+    license {
+        autoupdate {
+            url https://ae1.juniper.net/junos/key_retrieval;
+        }
+    }
+    processes {
+        general-authentication-service {
+            traceoptions {
+                file auth-trace-log size 1m;
+                flag local-authentication;
+                flag address-assignment;
+                flag framework;
+            }
+        }
+    }
+    ntp {
+        server 193.204.114.232;
+    }
+}
+chassis {
+    cluster {
+        reth-count 5;
+        redundancy-group 0 {
+            node 0 priority 100;
+            node 1 priority 1;
+        }
+        redundancy-group 1 {
+            node 0 priority 101;
+            node 1 priority 1;
+            interface-monitor {
+                ge-0/0/4 weight 255;
+                ge-0/0/5 weight 255;
+                ge-0/0/6 weight 255;
+                ge-0/0/7 weight 255;
+                ge-5/0/4 weight 255;
+                ge-5/0/5 weight 255;
+                ge-5/0/6 weight 255;
+                ge-5/0/7 weight 255;
+            }
+        }
+    }
+}
+interfaces {
+    ge-0/0/4 {
+        description "Physical Link - Internet";
+        gigether-options {
+            redundant-parent reth0;
+        }
+    }
+    ge-0/0/5 {
+        description "Physical Link - 5T intranet";
+        gigether-options {
+            redundant-parent reth1;
+        }
+    }
+    ge-0/0/6 {
+        description "Physical Link - BIP CCA";
+        gigether-options {
+            redundant-parent reth2;
+        }
+    }
+    ge-0/0/7 {
+        description "Physical Link - pubZ";
+        gigether-options {
+            redundant-parent reth3;
+        }
+    }
+    inactive: ge-0/0/8 {
+        description "Link primario DISPONIBILE";
+        gigether-options {
+            redundant-parent reth4;
+        }
+    }
+    ge-5/0/4 {
+        description "Physical Link - Internet";
+        gigether-options {
+            redundant-parent reth0;
+        }
+    }
+    ge-5/0/5 {
+        description "Physical Link - 5T intranet";
+        gigether-options {
+            redundant-parent reth1;
+        }
+    }
+    ge-5/0/6 {
+        description "Physical Link - BIP CCA";
+        gigether-options {
+            redundant-parent reth2;
+        }
+    }
+    ge-5/0/7 {
+        description "Physical Link - pubZ";
+        gigether-options {
+            redundant-parent reth3;
+        }
+    }
+    inactive: ge-5/0/8 {
+        description "Link secondario DISPONIBILE";
+        gigether-options {
+            redundant-parent reth4;
+        }
+    }
+    fab0 {
+        fabric-options {
+            member-interfaces {
+                ge-0/0/2;
+            }
+        }
+    }
+    fab1 {
+        fabric-options {
+            member-interfaces {
+                ge-5/0/2;
+            }
+        }
+    }
+    reth0 {
+        description "Logical Link - Internet";
+        redundant-ether-options {
+            redundancy-group 1;
+        }
+        unit 0 {
+            family inet {
+                filter {
+                    input APNPACKETS;
+                }
+                address 213.215.218.144/27;
+            }
+        }
+    }
+    reth1 {
+        description "Logical Link - 5T intranet";
+        redundant-ether-options {
+            redundancy-group 1;
+        }
+        unit 0 {
+            family inet {
+                address 192.168.17.2/30;
+            }
+        }
+    }
+    reth2 {
+        description "Logical Link - BIP CCA";
+        redundant-ether-options {
+            redundancy-group 1;
+        }
+        unit 0 {
+            family inet {
+                inactive: sampling {
+                    input;
+                    output;
+                }
+                address 172.17.1.254/24;
+            }
+        }
+    }
+    reth3 {
+        description "Logical Link - pubZ";
+        redundant-ether-options {
+            redundancy-group 1;
+        }
+        unit 0 {
+            family inet {
+                address 172.17.111.254/24;
+            }
+        }
+    }
+    inactive: reth4 {
+        description "Interfaccia logica DISPONIBILE LEGATA alla porta 8 di ogni fw";
+        redundant-ether-options {
+            redundancy-group 1;
+        }
+    }
+    st0 {
+        inactive: unit 0 {
+            description "Tunnel IPSec vs SADEM ****: SUPERATA DA 201-202****";
+            family inet;
+        }
+        unit 1 {
+            description "Tunnel IPSec vs srx-grugliasco (Rete Depositi)";
+            family inet;
+        }
+        unit 2 {
+            description "Tunnel IPSec vs srx-canuto";
+            family inet;
+        }
+        unit 3 {
+            description "Tunnel IPSec vs srx-menini";
+            family inet;
+        }
+        unit 4 {
+            description "Tunnel IPSec vs srx-vigo-chieri";
+            family inet;
+        }
+        unit 5 {
+            description "Tunnel IPSec vs srx-vigo-s.m.torinese";
+            family inet;
+        }
+        unit 6 {
+            description "Tunnel IPSec vs srx-cavour-antica";
+            family inet;
+        }
+        unit 7 {
+            description "Tunnel IPSec vs srx-cavour-pinerolo";
+            family inet;
+        }
+        unit 8 {
+            description "Tunnel IPSec vs srx-martoglio";
+            family inet;
+        }
+        unit 9 {
+            description "Tunnel IPSec vs srx-gherra";
+            family inet;
+        }
+        unit 10 {
+            description "Tunnel IPSec vs srx-bellando";
+            family inet;
+        }
+        unit 11 {
+            description "Tunnel IPSec vs srx-atap-biella";
+            family inet;
+        }
+        unit 12 {
+            description "Tunnel IPSec vs srx-atap-alice";
+            family inet;
+        }
+        unit 13 {
+            description "Tunnel IPSec vs srx-chiesa";
+            family inet;
+        }
+        unit 14 {
+            description "Tunnel IPSec vs srx-vimu";
+            family inet;
+        }
+        unit 15 {
+            description "Tunnel IPSec vs srx-marletti";
+            family inet;
+        }
+        unit 16 {
+            description "Tunnel IPSec vs srx-autostradale";
+            family inet;
+        }
+        unit 17 {
+            description "Tunnel IPSec vs srx-cavour-drosso";
+            family inet;
+        }
+        unit 18 {
+            description "Tunnel IPSec vs srx-atap-pray";
+            family inet;
+        }
+        unit 19 {
+            description "Tunnel IPSec vs srx-atap-vercelli";
+            family inet;
+        }
+        unit 20 {
+            description "Tunnel IPsec vs srx-sadem-caselle";
+            family inet;
+        }
+        unit 101 {
+            description "Tunnel 1 verso Vodafone (rete peer)";
+            family inet;
+        }
+        unit 102 {
+            description "Tunnel 2 verso Vodafone (rete peer)";
+            family inet;
+        }
+        unit 103 {
+            description "Tunnel 1 verso Vodafone per subnet mobile";
+            family inet;
+        }
+        unit 104 {
+            description "Tunnel 2 verso Vodafone per subnet mobile";
+            family inet;
+        }
+        unit 201 {
+            description "Tunnel IPSec vs intranet SADEM grugliasco (ASA 5525X, Elmec) rete 172.31.202.0/24";
+            family inet;
+        }
+        unit 202 {
+            description "Tunnel IPSec vs intranet SADEM grugliasco (ASA 5525X, Elmec) rete 10/8";
+            family inet;
+        }
+    }
+}
+forwarding-options {
+    packet-capture {
+        file filename VF2020MAR04;
+        maximum-capture-size 1500;
+    }
+}
+routing-options {
+    static {
+        /* ToBe Verified */
+        route 172.21.0.0/16 next-hop 192.168.17.1;
+        /* SADEM - GRUGLIASCO */
+        route 172.17.223.9/32 next-hop st0.1;
+        route 172.17.8.0/28 next-hop st0.1;
+        route 172.17.224.0/26 next-hop st0.1;
+        /* SADEM - PINEROLO */
+        route 172.17.223.10/32 next-hop st0.1;
+        route 172.17.8.16/28 next-hop st0.1;
+        route 172.17.224.64/26 next-hop st0.1;
+        /* SADEM - PONT SAINT MARTIN */
+        route 172.17.223.11/32 next-hop st0.1;
+        route 172.17.8.32/28 next-hop st0.1;
+        route 172.17.224.128/27 next-hop st0.1;
+        /* SADEM SUSA */
+        route 172.17.223.12/32 next-hop st0.1;
+        route 172.17.8.48/28 next-hop st0.1;
+        route 172.17.224.160/27 next-hop st0.1;
+        /* SADEM - PEROSA ARGENTINA */
+        route 172.17.223.13/32 next-hop st0.1;
+        route 172.17.8.64/28 next-hop st0.1;
+        route 172.17.224.192/27 next-hop st0.1;
+        /* DEPOSITO AMC CANUTO */
+        route 172.17.223.14/32 next-hop st0.2;
+        route 172.17.8.80/28 next-hop st0.2;
+        route 172.17.225.0/26 next-hop st0.2;
+        /* DEPOSITO MENINI */
+        route 172.17.223.21/32 next-hop st0.3;
+        route 172.17.8.192/28 next-hop st0.3;
+        route 172.17.225.160/28 next-hop st0.3;
+        /* DEPOSITO VIGO - CHIERI */
+        route 172.17.223.20/32 next-hop st0.4;
+        route 172.17.8.176/28 next-hop st0.4;
+        route 172.17.225.144/28 next-hop st0.4;
+        /* DEPOSITO VIGO - SAN MAURO TORINESE */
+        route 172.17.223.19/32 next-hop st0.5;
+        route 172.17.8.160/28 next-hop st0.5;
+        route 172.17.225.128/28 next-hop st0.5;
+        /* Deposito CAVOUR Via Antica di Pinerolo */
+        route 172.17.223.15/32 next-hop st0.6;
+        route 172.17.8.96/28 next-hop st0.6;
+        route 172.17.225.64/28 next-hop st0.6;
+        /* Deposito CAVOUR Via Pinerolo */
+        route 172.17.223.16/32 next-hop st0.7;
+        route 172.17.8.112/28 next-hop st0.7;
+        route 172.17.225.80/28 next-hop st0.7;
+        /* Deposito MARTOGLIO */
+        route 172.17.223.17/32 next-hop st0.8;
+        route 172.17.8.128/28 next-hop st0.8;
+        route 172.17.225.96/28 next-hop st0.8;
+        /* DEPOSITO GHERRA */
+        route 172.17.223.18/32 next-hop st0.9;
+        route 172.17.225.112/28 next-hop st0.9;
+        route 172.17.8.144/28 next-hop st0.9;
+        /* Deposito BELLANDO */
+        route 172.17.223.22/32 next-hop st0.10;
+        route 172.17.8.208/28 next-hop st0.10;
+        route 172.17.225.176/28 next-hop st0.10;
+        /* Deposito ATAP Biella */
+        route 172.17.223.23/32 next-hop st0.11;
+        route 172.17.8.224/28 next-hop st0.11;
+        route 172.17.225.192/28 next-hop st0.11;
+        /* Deposito ATAP Alice Castello */
+        route 172.17.223.24/32 next-hop st0.12;
+        route 172.17.8.240/28 next-hop st0.12;
+        route 172.17.225.208/28 next-hop st0.12;
+        /* Deposito CHIESA */
+        route 172.17.223.25/32 next-hop st0.13;
+        route 172.17.9.0/28 next-hop st0.13;
+        route 172.17.225.224/28 next-hop st0.13;
+        /* Deposito VIMU */
+        route 172.17.223.26/32 next-hop st0.14;
+        route 172.17.9.16/28 next-hop st0.14;
+        route 172.17.225.240/28 next-hop st0.14;
+        /* Deposito MARLETTI */
+        route 172.17.223.27/32 next-hop st0.15;
+        route 172.17.9.32/28 next-hop st0.15;
+        route 172.17.226.0/28 next-hop st0.15;
+        /* Deposito AUTOSTRADALE */
+        route 172.17.223.28/32 next-hop st0.16;
+        route 172.17.226.16/28 next-hop st0.16;
+        route 172.17.9.48/28 next-hop st0.16;
+        /* Deposito CAVOURESE STRADA DEL DROSSO */
+        route 172.17.223.29/32 next-hop st0.17;
+        route 172.17.9.64/28 next-hop st0.17;
+        route 172.17.226.32/28 next-hop st0.17;
+        /* Depositi ATAP Pray */
+        route 172.17.223.31/32 next-hop st0.18;
+        route 172.17.226.64/28 next-hop st0.18;
+        route 172.17.9.96/28 next-hop st0.18;
+        /* Depositi ATAP Vercelli */
+        route 172.17.223.30/32 next-hop st0.19;
+        route 172.17.9.80/28 next-hop st0.19;
+        route 172.17.226.48/28 next-hop st0.19;
+        /* SADEM Caselle */
+        route 172.17.223.32/32 next-hop st0.20;
+        route 172.17.9.112/28 next-hop st0.20;
+        /* APN VODAFONE - EXTRA-TO */
+        route 91.80.47.80/29 next-hop st0.101;
+        route 83.224.94.56/29 next-hop st0.102;
+        route 172.17.16.0/20 next-hop [ st0.103 st0.104 ];
+        inactive: route 172.17.16.0/21 next-hop st0.103;
+        inactive: route 172.17.24.0/21 next-hop st0.104;
+        /* Network SADEM su Nuovo Tunnel IPSec */
+        route 172.31.202.0/24 next-hop st0.201;
+        route 10.0.0.0/8 next-hop st0.202;
+        /* Networks 5T */
+        route 172.16.0.0/16 next-hop 192.168.17.1;
+        route 172.20.0.0/16 next-hop 192.168.17.1;
+        route 172.30.0.0/16 next-hop 192.168.17.1;
+        route 192.168.120.0/24 next-hop 192.168.17.1;
+        /* DEFAULT ROUTE */
+        route 0.0.0.0/0 next-hop 213.215.218.129;
+        /* To Be Verified */
+        route 192.168.112.192/28 next-hop 10.9.10.50;
+    }
+}
+protocols {
+    stp;
+}
+security {
+    ike {
+        inactive: traceoptions {
+            file log-ike;
+            flag all;
+        }
+        /* Policy IKE per accessi remoti tramite client VPN */
+        proposal Pset_shrew {
+            authentication-method pre-shared-keys;
+            dh-group group2;
+            authentication-algorithm sha1;
+            encryption-algorithm 3des-cbc;
+            lifetime-seconds 180;
+        }
+        proposal Pset_voda {
+            authentication-method pre-shared-keys;
+            dh-group group2;
+            authentication-algorithm sha1;
+            encryption-algorithm des-cbc;
+            lifetime-seconds 86400;
+        }
+        proposal Pset_iSadem {
+            description Elmec;
+            authentication-method pre-shared-keys;
+            dh-group group2;
+            authentication-algorithm sha1;
+            encryption-algorithm aes-128-cbc;
+            lifetime-seconds 28800;
+        }
+        /* Policy IKE per accessi IPSec sedi remote */
+        policy Pol_grugliasco {
+            mode main;
+            proposal-set standard;
+            pre-shared-key ascii-text "$9$LFu7dsaZjP5F245Fn/0OX7-V24"; ## SECRET-DATA
+        }
+        policy Pol_depo {
+            mode aggressive;
+            proposal-set standard;
+            pre-shared-key ascii-text "$9$IflhyKX7V4aUM8aUjH5TRhSrM8"; ## SECRET-DATA
+        }
+        policy Pol_shrew {
+            mode aggressive;
+            proposals Pset_shrew;
+            pre-shared-key ascii-text "$9$2moZjmfzCtOHqtO1RlegoJGHq"; ## SECRET-DATA
+        }
+        inactive: policy ike-sadem {
+            mode main;
+            proposal-set standard;
+            pre-shared-key ascii-text "$9$mPFnAt0hSeLxUjqfn6uO1EeMdVsgJUdV.5Qn9CcylM-b4aGHqP0BKWXxbwoaZGiq.P5z39Rhs24ZiH369CBIvML"; ## SECRET-DATA
+        }
+        policy Pol_voda {
+            proposals Pset_voda;
+            pre-shared-key ascii-text "$9$4bojqFnC01E7-ikmPQz"; ## SECRET-DATA
+        }
+        policy Pol_iSadem {
+            mode main;
+            description policy_phase1-sadem-elmec;
+            proposals Pset_iSadem;
+            pre-shared-key ascii-text "$9$kqTz/9tIEyM8JGi.zFAp01ye7NVs4J7NHmfzn6RhSex-YgaDiqturKW8-d2goaUiHqm5QnBIVwYoUDQFn6uOleM"; ## SECRET-DATA
+        }
+        /* Policy per Dynamic VPN */
+        policy Pol_dyn {
+            mode aggressive;
+            proposal-set standard;
+            pre-shared-key ascii-text "$9$za/On6AEhrlv8hcs4JZjiCtp0Rhcylv8XIRNdVwg4"; ## SECRET-DATA
+        }
+        gateway GW_shrew {
+            ike-policy Pol_shrew;
+            dynamic {
+                user-at-hostname "remote@5t.com";
+                connections-limit 200;
+                ike-user-type shared-ike-id;
+            }
+            nat-keepalive 20;
+            external-interface reth0.0;
+            xauth access-profile shrew-access;
+        }
+        inactive: gateway GW_sadem {
+            ike-policy ike-sadem;
+            address 217.57.162.82;
+            external-interface reth0.0;
+        }
+        gateway GW_grugliasco {
+            ike-policy Pol_grugliasco;
+            address 85.31.165.238;
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_canuto {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@canuto.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_menini {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@menini.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_vigo-chieri {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@vigochieri.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_vigo-smto {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@vigosmt.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_gherra {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@gherra.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_cavour-antica {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@cavour-a.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_cavour-pinerolo {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@cavour-p.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_martoglio {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@martoglio.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_bellando {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@bellando.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_atap-biella {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@atap-b.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_atap-alice {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@atap-a.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_chiesa {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@chiesa.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_vimu {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@vimu.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_marletti {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@marletti.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_autostradale {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@autostradale.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_cavour-drosso {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@cavour-d.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_caselle {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@caselle.sadem.local";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway gw-voda-1 {
+            ike-policy Pol_voda;
+            address 91.81.223.244;
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway gw-voda-2 {
+            ike-policy Pol_voda;
+            address 91.81.223.245;
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_isadem {
+            ike-policy Pol_iSadem;
+            address 89.96.203.244;
+            external-interface reth0.0;
+        }
+        /* IKE GW per Dynamic VPN */
+        gateway GW_dyn {
+            ike-policy Pol_dyn;
+            dynamic {
+                hostname dynvpn;
+                connections-limit 100;
+                ike-user-type group-ike-id;
+            }
+            external-interface reth0.0;
+            xauth access-profile dyn-vpn-access-profile;
+        }
+        gateway GW_atap-pray {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@atap-pray.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+        gateway GW_atap-vercelli {
+            ike-policy Pol_depo;
+            dynamic user-at-hostname "srx@atap-vercelli.it";
+            dead-peer-detection;
+            external-interface reth0.0;
+        }
+    }
+    ipsec {
+        traceoptions {
+            flag security-associations;
+        }
+        proposal Pset-shrew {
+            /* Configurazione Fase-2 per accessi remoti tramite client VPN */
+            protocol esp;
+            authentication-algorithm hmac-sha1-96;
+            encryption-algorithm 3des-cbc;
+        }
+        proposal Pset_voda {
+            protocol esp;
+            authentication-algorithm hmac-sha1-96;
+            encryption-algorithm des-cbc;
+            lifetime-seconds 3600;
+        }
+        proposal Pset-isadem {
+            description Elmec_Phase2_Proposal;
+            protocol esp;
+            authentication-algorithm hmac-sha1-96;
+            encryption-algorithm aes-128-cbc;
+            lifetime-seconds 1800;
+            lifetime-kilobytes 4608000;
+        }
+        policy Pol-depo {
+            description "Fase-2 per tunnel IPSec con policy standard";
+            perfect-forward-secrecy {
+                keys group2;
+            }
+            proposal-set standard;
+        }
+        policy Pol-shrew {
+            proposals Pset-shrew;
+        }
+        policy Pol_voda {
+            proposals Pset_voda;
+        }
+        policy Pol-isadem {
+            description policy_phase2-sadem-elmec;
+            perfect-forward-secrecy {
+                keys group2;
+            }
+            proposals Pset-isadem;
+        }
+        /* Policy ipsec per Dynamic VPN */
+        policy Pol-dyn {
+            proposal-set standard;
+        }
+        vpn VPN-shrew {
+            ike {
+                gateway GW_shrew;
+                ipsec-policy Pol-shrew;
+            }
+        }
+        inactive: vpn vpn_sadem {
+            bind-interface st0.0;
+            vpn-monitor;
+            ike {
+                gateway GW_sadem;
+                idle-time 1800;
+                no-anti-replay;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn VPN-grugliasco {
+            bind-interface st0.1;
+            vpn-monitor;
+            ike {
+                gateway GW_grugliasco;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels immediately;
+        }
+        vpn VPN-canuto {
+            bind-interface st0.2;
+            vpn-monitor;
+            ike {
+                gateway GW_canuto;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn vpn_menini {
+            bind-interface st0.3;
+            vpn-monitor;
+            ike {
+                gateway GW_menini;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn vpn_vigo-chieri {
+            bind-interface st0.4;
+            vpn-monitor;
+            ike {
+                gateway GW_vigo-chieri;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn vpn_vigo-smto {
+            bind-interface st0.5;
+            vpn-monitor;
+            ike {
+                gateway GW_vigo-smto;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn vpn_gherra {
+            bind-interface st0.9;
+            vpn-monitor;
+            ike {
+                gateway GW_gherra;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn vpn_cavour-antica {
+            bind-interface st0.6;
+            vpn-monitor;
+            ike {
+                gateway GW_cavour-antica;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn vpn_cavour-pinerolo {
+            bind-interface st0.7;
+            vpn-monitor;
+            ike {
+                gateway GW_cavour-pinerolo;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn vpn_martoglio {
+            bind-interface st0.8;
+            vpn-monitor;
+            ike {
+                gateway GW_martoglio;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn vpn_bellando {
+            bind-interface st0.10;
+            vpn-monitor;
+            ike {
+                gateway GW_bellando;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn vpn_atap-biella {
+            bind-interface st0.11;
+            vpn-monitor;
+            ike {
+                gateway GW_atap-biella;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn vpn_atap-alice {
+            bind-interface st0.12;
+            vpn-monitor;
+            ike {
+                gateway GW_atap-alice;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn vpn_chiesa {
+            bind-interface st0.13;
+            vpn-monitor;
+            ike {
+                gateway GW_chiesa;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn vpn_vimu {
+            bind-interface st0.14;
+            vpn-monitor;
+            ike {
+                gateway GW_vimu;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn vpn_marletti {
+            bind-interface st0.15;
+            vpn-monitor;
+            ike {
+                gateway GW_marletti;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn vpn_autostradale {
+            bind-interface st0.16;
+            vpn-monitor;
+            ike {
+                gateway GW_autostradale;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn vpn_cavour-drosso {
+            bind-interface st0.17;
+            vpn-monitor;
+            ike {
+                gateway GW_cavour-drosso;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn VPN-sadem-caselle {
+            bind-interface st0.20;
+            vpn-monitor;
+            ike {
+                gateway GW_caselle;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels immediately;
+        }
+        vpn vpn-voda-1 {
+            bind-interface st0.101;
+            ike {
+                gateway gw-voda-1;
+                proxy-identity {
+                    local 0.0.0.0/0;
+                    remote 91.80.47.80/29;
+                    service any;
+                }
+                ipsec-policy Pol_voda;
+            }
+            establish-tunnels immediately;
+        }
+        vpn vpn-voda-2 {
+            bind-interface st0.102;
+            ike {
+                gateway gw-voda-2;
+                proxy-identity {
+                    local 0.0.0.0/0;
+                    remote 83.224.94.56/29;
+                    service any;
+                }
+                ipsec-policy Pol_voda;
+            }
+            establish-tunnels immediately;
+        }
+        vpn vpn-voda-3 {
+            bind-interface st0.103;
+            ike {
+                gateway gw-voda-1;
+                proxy-identity {
+                    local 0.0.0.0/0;
+                    remote 172.17.16.0/20;
+                    service any;
+                }
+                ipsec-policy Pol_voda;
+            }
+            establish-tunnels immediately;
+        }
+        vpn vpn-voda-4 {
+            bind-interface st0.104;
+            ike {
+                gateway gw-voda-2;
+                proxy-identity {
+                    local 0.0.0.0/0;
+                    remote 172.17.16.0/20;
+                    service any;
+                }
+                ipsec-policy Pol_voda;
+            }
+            establish-tunnels immediately;
+        }
+        vpn VPN-isadem1 {
+            bind-interface st0.201;
+            ike {
+                gateway GW_isadem;
+                proxy-identity {
+                    local 172.17.1.0/24;
+                    remote 172.31.202.0/24;
+                    service any;
+                }
+                ipsec-policy Pol-isadem;
+            }
+            establish-tunnels immediately;
+        }
+        vpn VPN-isadem2 {
+            bind-interface st0.202;
+            ike {
+                gateway GW_isadem;
+                proxy-identity {
+                    local 172.17.1.0/24;
+                    remote 10.0.0.0/8;
+                    service any;
+                }
+                ipsec-policy Pol-isadem;
+            }
+            establish-tunnels immediately;
+        }
+        /* Dynamic VPN */
+        vpn VPN-dyn {
+            ike {
+                gateway GW_dyn;
+                ipsec-policy Pol-dyn;
+            }
+        }
+        vpn vpn_atap-pray {
+            bind-interface st0.18;
+            vpn-monitor;
+            ike {
+                gateway GW_atap-pray;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+        vpn vpn_atap-vercelli {
+            bind-interface st0.19;
+            vpn-monitor;
+            ike {
+                gateway GW_atap-vercelli;
+                ipsec-policy Pol-depo;
+            }
+            establish-tunnels on-traffic;
+        }
+    }
+    address-book {
+        xto {
+            address ecomserver 172.17.1.150/32;
+            inactive: address d2 172.17.1.223/32;
+            attach {
+                zone BIPz;
+            }
+        }
+        global {
+            address xtoecom 172.17.1.150/32;
+            address tod2 213.215.218.144/32;
+            address ecomserverdmz 172.17.111.150/32;
+            address hacon {
+                dns-name gate-nat.hacon.de;
+            }
+            address vtsserverdmz 172.17.111.152/32;
+            address etpass {
+                dns-name pos-cvend.easyticketing.it;
+            }
+            address etpassproxy 172.17.1.153/32;
+        }
+    }
+    dynamic-vpn {
+        access-profile dyn-vpn-access-profile;
+        clients {
+            all {
+                remote-protected-resources {
+                    172.17.1.0/24;
+                    172.17.16.0/21;
+                }
+                ipsec-vpn VPN-dyn;
+                user {
+                    atap1;
+                    atap10;
+                    atap11;
+                    atap12;
+                    atap13;
+                    atap14;
+                    atap15;
+                    atap16;
+                    atap17;
+                    atap18;
+                    atap19;
+                    atap2;
+                    atap3;
+                    atap4;
+                    atap5;
+                    atap6;
+                    atap7;
+                    atap8;
+                    atap9;
+                    autostrad1;
+                    autostrad2;
+                    autostrad3;
+                    autovigo1;
+                    autovigo2;
+                    autovigo3;
+                    bellando1;
+                    bellando2;
+                    bellando3;
+                    bouchard1;
+                    bouchard2;
+                    bouchard3;
+                    canuto1;
+                    canuto2;
+                    canuto3;
+                    cavourese1;
+                    cavourese2;
+                    cavourese3;
+                    chiesa1;
+                    chiesa2;
+                    chiesa3;
+                    divitechrem1;
+                    divitechrem2;
+                    divitechrem3;
+                    elsagrem1;
+                    elsagrem2;
+                    elsagrem3;
+                    extrato1;
+                    extrato2;
+                    extrato3;
+                    furno1;
+                    furno2;
+                    furno3;
+                    gherra1;
+                    gherra2;
+                    gherra3;
+                    gttextra1;
+                    gttextra2;
+                    gttextra3;
+                    marletti1;
+                    marletti2;
+                    marletti3;
+                    martoglio1;
+                    martoglio2;
+                    martoglio3;
+                    menini1;
+                    menini2;
+                    menini3;
+                    novarese1;
+                    novarese2;
+                    novarese3;
+                    sadem1;
+                    sadem2;
+                    sadem3;
+                    seren1;
+                    seren2;
+                    seren3;
+                    staav1;
+                    staav2;
+                    staav3;
+                    vimu1;
+                    vimu2;
+                    vimu3;
+                    vita1;
+                    vita2;
+                    vita3;
+                }
+            }
+        }
+    }
+    flow {
+        traceoptions {
+            file g.flowdbg;
+            flag basic-datapath;
+            inactive: packet-filter m {
+                destination-port 513;
+                interface reth0.0;
+            }
+            inactive: packet-filter Q {
+                interface reth0.0;
+            }
+            inactive: packet-filter f.in {
+                destination-prefix 178.237.2.30/32;
+            }
+            inactive: packet-filter f.out {
+                source-prefix 178.237.2.30/32;
+            }
+            inactive: packet-filter i {
+                interface st0.103;
+            }
+        }
+        tcp-mss {
+            ipsec-vpn {
+                mss 1150;
+            }
+        }
+    }
+    screen {
+        ids-option untrust-screen {
+            icmp {
+                ping-death;
+            }
+            ip {
+                source-route-option;
+                tear-drop;
+            }
+            tcp {
+                syn-flood {
+                    alarm-threshold 1024;
+                    attack-threshold 200;
+                    source-threshold 1024;
+                    destination-threshold 2048;
+                    timeout 20;
+                }
+                land;
+            }
+        }
+    }
+    nat {
+        source {
+            rule-set ex-to-untrust {
+                from zone BIPz;
+                to zone untrust;
+                rule source-nat-divitech-25 {
+                    match {
+                        source-address 172.17.1.33/32;
+                        destination-port 25;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+                rule source-nat-divitech-443 {
+                    match {
+                        source-address 172.17.1.33/32;
+                        destination-port 443;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+                rule wsus-80 {
+                    match {
+                        source-address 172.17.1.140/32;
+                        destination-port 80;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+                rule wsus-443 {
+                    match {
+                        source-address 172.17.1.140/32;
+                        destination-port 443;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+                rule dns {
+                    match {
+                        source-address 172.17.1.140/32;
+                        destination-port 53;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+                inactive: rule ecom-80 {
+                    match {
+                        source-address 172.17.1.150/32;
+                        destination-port 80;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+                inactive: rule ecom-443 {
+                    match {
+                        source-address 172.17.1.150/32;
+                        destination-port 443;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+                inactive: rule ecom-dns {
+                    match {
+                        source-address 172.17.1.150/32;
+                        destination-port 53;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+                rule snat-avm-atap {
+                    match {
+                        source-address 172.17.1.33/32;
+                        destination-address 213.82.49.108/32;
+                        destination-port 8095;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+                rule dyum {
+                    match {
+                        source-address 172.17.1.223/32;
+                        destination-address 0.0.0.0/0;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+                rule ydns {
+                    match {
+                        source-address 172.17.1.223/32;
+                        destination-address 8.8.8.8/32;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+                rule bi-80 {
+                    match {
+                        source-address 172.17.1.165/24;
+                        destination-port 80;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+                rule bi-443 {
+                    match {
+                        source-address 172.17.1.165/24;
+                        destination-port 443;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+                rule snat-avm-hacon {
+                    match {
+                        source-address 172.17.1.33/32;
+                        destination-address 213.83.5.132/32;
+                        destination-port 4500;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+                rule etpass {
+                    match {
+                        source-address 172.17.1.0/24;
+                        destination-address 178.237.2.30/32;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+                rule etpass-test {
+                    match {
+                        source-address 172.17.1.140/24;
+                        destination-address 178.237.3.12/32;
+                        destination-port 50075;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+                rule source-nat-divitech-8095 {
+                    match {
+                        source-address 172.17.1.33/32;
+                        destination-port 8095;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+            }
+            rule-set mob-to-untrust {
+                from zone VPNz;
+                to zone untrust;
+                rule bus-to-etpass {
+                    match {
+                        source-address 172.0.0.0/8;
+                        destination-address 178.237.2.30/32;
+                    }
+                    then {
+                        source-nat {
+                            interface;
+                        }
+                    }
+                }
+            }
+        }
+        inactive: destination {
+            pool ecomport80 {
+                address 172.17.1.150/32 port 80;
+            }
+            rule-set to-ecom {
+                from zone untrust;
+                rule e80 {
+                    match {
+                        destination-address 213.215.218.145/32;
+                        destination-port 80;
+                    }
+                    then {
+                        destination-nat pool ecomport80;
+                    }
+                }
+            }
+        }
+        static {
+            rule-set pub {
+                from zone untrust;
+                rule ecom-static {
+                    match {
+                        destination-address 213.215.218.145/32;
+                    }
+                    then {
+                        static-nat prefix 172.17.111.150/32;
+                    }
+                }
+                rule vts-static {
+                    match {
+                        destination-address 213.215.218.146/32;
+                    }
+                    then {
+                        static-nat prefix 172.17.111.152/32;
+                    }
+                }
+            }
+            rule-set pxy {
+                from zone BIPz;
+                rule etpass-static {
+                    match {
+                        destination-address 172.17.1.153/32;
+                    }
+                    then {
+                        static-nat prefix 178.237.2.30/32;
+                    }
+                }
+            }
+        }
+        proxy-arp {
+            interface reth0.0 {
+                address {
+                    213.215.218.145/32;
+                    213.215.218.146/32;
+                }
+            }
+            interface reth2.0 {
+                address {
+                    172.17.1.153/32;
+                }
+            }
+        }
+    }
+    policies {
+        traceoptions {
+            file log_sec_policy;
+            flag all;
+            flag rules;
+        }
+        from-zone BIPz to-zone untrust {
+            policy BIPz-untrust-PERMIT {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+            policy etpass-static-pol {
+                match {
+                    source-address any;
+                    destination-address etpass;
+                    application [ etpass-pospay etpass-posmanager etpass-ftps etpass-ftpsdata ];
+                }
+                then {
+                    permit;
+                }
+            }
+            policy BIPz-untrust-DROP {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    deny;
+                }
+            }
+        }
+        from-zone 5Tz to-zone untrust {
+            policy 5t-apn-to-untrust {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        from-zone BIPz to-zone BIPz {
+            policy BIPz-BIPz-PERMIT {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+            policy BIPz-BIPz-DROP {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    deny;
+                }
+            }
+        }
+        from-zone 5Tz to-zone 5Tz {
+            policy intra-5t {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        from-zone BIPz to-zone 5Tz {
+            policy ex-to-5t-apn {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        from-zone 5Tz to-zone BIPz {
+            policy 5t-apn-to-ex-to {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        /* Policy In per accessi remoti tramite client VPN */
+        from-zone untrust to-zone BIPz {
+            inactive: policy ecom-pol {
+                match {
+                    source-address any;
+                    destination-address ecomserver;
+                    application junos-http;
+                }
+                then {
+                    permit {
+                        destination-address;
+                    }
+                }
+            }
+            policy ecom-static-pol {
+                match {
+                    source-address any;
+                    destination-address ecomserver;
+                    application [ junos-http junos-https ];
+                }
+                then {
+                    permit;
+                }
+            }
+            policy RemoteVPN {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit {
+                        tunnel {
+                            ipsec-vpn VPN-shrew;
+                        }
+                    }
+                    count;
+                }
+            }
+            /* Policy In per accessi remoti tramite client Pulse - Dynamic VPN */
+            policy VPN-dyn-policy {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit {
+                        tunnel {
+                            ipsec-vpn VPN-dyn;
+                        }
+                    }
+                    count;
+                }
+            }
+            inactive: policy vts-static-pol {
+                match {
+                    source-address any;
+                    destination-address vtsserver;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        /* Policy per Tunnel IPSec */
+        from-zone VPNz to-zone BIPz {
+            policy vpn-ex-to {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        from-zone VPNz to-zone 5Tz {
+            policy vpn-5t {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        from-zone BIPz to-zone VPNz {
+            policy ex-to-vpn {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        from-zone 5Tz to-zone VPNz {
+            policy 5t-vpn {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        from-zone pubZ to-zone pubZ {
+            policy pub-pub {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        from-zone BIPz to-zone pubZ {
+            policy xto-pub {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        from-zone 5Tz to-zone pubZ {
+            policy apn-pub {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        from-zone VPNz to-zone pubZ {
+            policy vpn-pub {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        from-zone pubZ to-zone 5Tz {
+            policy pub-apn {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        from-zone pubZ to-zone BIPz {
+            policy pub-xto {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+            policy pubZ-BIPz-PERMIT {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+            policy pubZ-BIPz-DROP {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    deny;
+                }
+            }
+        }
+        from-zone pubZ to-zone VPNz {
+            policy pub-vpn {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        from-zone pubZ to-zone untrust {
+            policy pub-untrust {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        from-zone untrust to-zone pubZ {
+            policy ecomdmz-static-pol {
+                match {
+                    source-address any;
+                    destination-address ecomserverdmz;
+                    application [ junos-http junos-https ];
+                }
+                then {
+                    permit;
+                }
+            }
+            policy vtsdmz-static-pol {
+                match {
+                    source-address any;
+                    destination-address vtsserverdmz;
+                    application [ junos-http junos-https vts20080 vts28080 vts20443 ];
+                }
+                then {
+                    permit;
+                }
+            }
+            policy etpass-static-pol {
+                match {
+                    source-address etpass;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        from-zone VPNz to-zone untrust {
+            policy bus-etpass {
+                match {
+                    source-address any;
+                    destination-address etpass;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+        from-zone untrust to-zone VPNz {
+            policy dyn-vpn {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then {
+                    permit;
+                }
+            }
+        }
+    }
+    zones {
+        security-zone BIPz {
+            host-inbound-traffic {
+                system-services {
+                    all;
+                }
+            }
+            interfaces {
+                reth2.0;
+            }
+        }
+        security-zone 5Tz {
+            interfaces {
+                reth1.0 {
+                    host-inbound-traffic {
+                        system-services {
+                            all;
+                        }
+                    }
+                }
+            }
+        }
+        security-zone untrust {
+            screen untrust-screen;
+            interfaces {
+                reth0.0 {
+                    host-inbound-traffic {
+                        system-services {
+                            ike;
+                            https;
+                            http;
+                        }
+                    }
+                }
+            }
+        }
+        security-zone VPNz {
+            host-inbound-traffic {
+                system-services {
+                    all;
+                }
+            }
+            interfaces {
+                inactive: st0.0;
+                st0.1;
+                st0.2;
+                st0.3;
+                st0.4;
+                st0.5;
+                st0.6;
+                st0.7;
+                st0.8;
+                st0.9;
+                st0.10;
+                st0.11;
+                st0.12;
+                st0.13;
+                st0.14;
+                st0.15;
+                st0.16;
+                st0.17;
+                st0.18;
+                st0.19;
+                st0.20;
+                st0.101;
+                st0.102;
+                st0.103;
+                st0.104;
+                st0.201;
+                st0.202;
+            }
+        }
+        security-zone pubZ {
+            interfaces {
+                reth3.0 {
+                    host-inbound-traffic {
+                        system-services {
+                            all;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+firewall {
+    filter APNPACKETS {
+        term 1 {
+            from {
+                source-address {
+                    172.17.16.0/20;
+                }
+            }
+            then {
+                sample;
+                accept;
+            }
+        }
+        term allow-all-else {
+            then accept;
+        }
+    }
+}
+access {
+    profile shrew-access {
+        authentication-order password;
+        client Selex {
+            firewall-user {
+                password "$9$PTQnOBEhyKBIX-bwJZmfTF/teK8"; ## SECRET-DATA
+            }
+        }
+        client SelexES {
+            firewall-user {
+                password "$9$E.WyvLdVYaZjKMX-wsZGk.P5QnCtORcl5Q"; ## SECRET-DATA
+            }
+        }
+        client ale {
+            firewall-user {
+                password "$9$rNpe8X7-wsgoWLGDk.F3M8Lx-w"; ## SECRET-DATA
+            }
+        }
+        client atap1 {
+            firewall-user {
+                password "$9$-AdYgoJGDjq4aZjiHTQlKM8Nd"; ## SECRET-DATA
+            }
+        }
+        client atap10 {
+            firewall-user {
+                password "$9$9bhKAO1IEcyrv1Rhrlex7DiHkfTz36/Ap"; ## SECRET-DATA
+            }
+        }
+        client atap11 {
+            firewall-user {
+                password "$9$4faDik.P5T3HqmTQzAtvW8Xdb"; ## SECRET-DATA
+            }
+        }
+        client atap12 {
+            firewall-user {
+                password "$9$zO133Ct0BIEhruO1hcSW8JGUimf"; ## SECRET-DATA
+            }
+        }
+        client atap13 {
+            firewall-user {
+                password "$9$ODDG1cyKM8XxdevWx7N2g5Qz6tu"; ## SECRET-DATA
+            }
+        }
+        client atap14 {
+            firewall-user {
+                password "$9$4VaDimfTzF/.P5F3nu08Xx7wY"; ## SECRET-DATA
+            }
+        }
+        client atap15 {
+            firewall-user {
+                password "$9$xcRNwYJGDiHmaZUHkqzFhSyl8X"; ## SECRET-DATA
+            }
+        }
+        client atap16 {
+            firewall-user {
+                password "$9$ZvUk.z369CuQFnCAtRE-VbYJG"; ## SECRET-DATA
+            }
+        }
+        client atap17 {
+            firewall-user {
+                password "$9$dlbgoik.PfzjHqf5T9CevMXVw"; ## SECRET-DATA
+            }
+        }
+        client atap18 {
+            firewall-user {
+                password "$9$C9ydtBIevWLX-lKMXx7Y2fTQzCt"; ## SECRET-DATA
+            }
+        }
+        client atap19 {
+            firewall-user {
+                password "$9$FQ6jnApcylKvLhSrvMWdVk.mfn/"; ## SECRET-DATA
+            }
+        }
+        client atap2 {
+            firewall-user {
+                password "$9$w3soJGDikqfZUjq.m3nM8XNwY"; ## SECRET-DATA
+            }
+        }
+        client atap3 {
+            firewall-user {
+                password "$9$VFbgoJGDiHmaZUHkqzFKM87bs"; ## SECRET-DATA
+            }
+        }
+        client atap4 {
+            firewall-user {
+                password "$9$rEtl8Xdbs2gJ-Vwg4oiHuOB"; ## SECRET-DATA
+            }
+        }
+        client atap5 {
+            firewall-user {
+                password "$9$QtSnFCt1RhSyKBIEyrlXxHq."; ## SECRET-DATA
+            }
+        }
+        client atap6 {
+            firewall-user {
+                password "$9$zr5sntuEcyleWRhSeKvN-mf5"; ## SECRET-DATA
+            }
+        }
+        client atap7 {
+            firewall-user {
+                password "$9$2DajHTz36/t5QF/9C1IwY2"; ## SECRET-DATA
+            }
+        }
+        client atap8 {
+            firewall-user {
+                password "$9$Nu-24ik.PfzjHqf5T9CX7N"; ## SECRET-DATA
+            }
+        }
+        client atap9 {
+            firewall-user {
+                password "$9$WxrLVwY2aZjH249ApuEh4aJZi.n/C"; ## SECRET-DATA
+            }
+        }
+        client autostrad1 {
+            firewall-user {
+                password "$9$AZ4atBIcylKvLcy2aUH5TEcylWL"; ## SECRET-DATA
+            }
+        }
+        client autostrad2 {
+            firewall-user {
+                password "$9$eXLKLxdbs2gJdbPQnCB1NdbYaZ"; ## SECRET-DATA
+            }
+        }
+        client autostrad3 {
+            firewall-user {
+                password "$9$s/YaZjHqmPQjHu1hr8LUjHmQF"; ## SECRET-DATA
+            }
+        }
+        client autovigo1 {
+            firewall-user {
+                password "$9$-CdYgaZU.fzYgDkPQ9CX7-V24"; ## SECRET-DATA
+            }
+        }
+        client autovigo2 {
+            firewall-user {
+                password "$9$mPz3/CtIhrz3pBEyW8Hqm536"; ## SECRET-DATA
+            }
+        }
+        client autovigo3 {
+            firewall-user {
+                password "$9$uXqj0RhylKx-wRhvLNboaCtu1cy"; ## SECRET-DATA
+            }
+        }
+        client bellando1 {
+            firewall-user {
+                password "$9$EvBhlKLxNVb2IELN-waJAp0BhS"; ## SECRET-DATA
+            }
+        }
+        client bellando2 {
+            firewall-user {
+                password "$9$CJOBAO1cylvMX/CcleW-d5QF6tu"; ## SECRET-DATA
+            }
+        }
+        client bellando3 {
+            firewall-user {
+                password "$9$1U1ISrM8XN-wO1MXxdg4/CtOEc"; ## SECRET-DATA
+            }
+        }
+        client bouchard1 {
+            firewall-user {
+                password "$9$-ndYgGDiq.54a6A0OcS8X7-s2"; ## SECRET-DATA
+            }
+        }
+        client bouchard2 {
+            firewall-user {
+                password "$9$71NwYJGDHkP2439puEhM8XNwY"; ## SECRET-DATA
+            }
+        }
+        client bouchard3 {
+            firewall-user {
+                password "$9$2VgZUqmfQz6Diu1hcvMdbs4GD"; ## SECRET-DATA
+            }
+        }
+        client canuto1 {
+            firewall-user {
+                password "$9$JGZikTz39Cu4a5Fn/OBbs24GD"; ## SECRET-DATA
+            }
+        }
+        client canuto2 {
+            firewall-user {
+                password "$9$saYaZk.PQz6VwHmfT9CX7-bgo"; ## SECRET-DATA
+            }
+        }
+        client canuto3 {
+            firewall-user {
+                password "$9$hhHcev7-VY2aIExdbsZGp0BEre"; ## SECRET-DATA
+            }
+        }
+        client cavourese1 {
+            firewall-user {
+                password "$9$RR0ErexNdsYo1RwgJDmPRhSrM8"; ## SECRET-DATA
+            }
+        }
+        client cavourese2 {
+            firewall-user {
+                password "$9$hQacevNdb2gJRhYoGif5hSrKLx"; ## SECRET-DATA
+            }
+        }
+        client cavourese3 {
+            firewall-user {
+                password "$9$MH5W7-goJDjqKMUHmT/9M8X-s2"; ## SECRET-DATA
+            }
+        }
+        client chiesa1 {
+            firewall-user {
+                password "$9$7YNwYUjHmPQwYDk.P3nM8X7bs"; ## SECRET-DATA
+            }
+        }
+        client chiesa2 {
+            firewall-user {
+                password "$9$4XoUj5QF/9pUjT369OBbs2oUj"; ## SECRET-DATA
+            }
+        }
+        client chiesa3 {
+            firewall-user {
+                password "$9$5Tn/BIEyrvn/1hSr8Lk.PQ69"; ## SECRET-DATA
+            }
+        }
+        client divitechrem1 {
+            firewall-user {
+                password "$9$65aw90BEcyvMXtu7Vw2GUuO1Ryl"; ## SECRET-DATA
+            }
+        }
+        client divitechrem2 {
+            firewall-user {
+                password "$9$dSb4aUjHPfzYg39AuEhgoJUk."; ## SECRET-DATA
+            }
+        }
+        client divitechrem3 {
+            firewall-user {
+                password "$9$jgHfT369u0I.PEylv7NP5QnAp"; ## SECRET-DATA
+            }
+        }
+        client elsagrem1 {
+            firewall-user {
+                password "$9$8dIXVw24aji.VwPQF3tpNdbsoJ"; ## SECRET-DATA
+            }
+        }
+        client elsagrem2 {
+            firewall-user {
+                password "$9$AcuQpIESreLX-IEVYg4DjO1Rcev"; ## SECRET-DATA
+            }
+        }
+        client elsagrem3 {
+            firewall-user {
+                password "$9$KPzM7-bs2ZGi7-kP5T/9LxNbgo"; ## SECRET-DATA
+            }
+        }
+        client extrato1 {
+            firewall-user {
+                password "$9$fT69Ap0Ehr1RVY4oiHqmfTn/"; ## SECRET-DATA
+            }
+        }
+        client extrato2 {
+            firewall-user {
+                password "$9$Tz9Ap0BcSeRhwgaJkqmfTF9A"; ## SECRET-DATA
+            }
+        }
+        client extrato3 {
+            firewall-user {
+                password "$9$.PFn/Ct1Ic0BNbY2UDik.536"; ## SECRET-DATA
+            }
+        }
+        client furno1 {
+            firewall-user {
+                password "$9$saYaZmfT/9pQFclvLVbQFn/p0"; ## SECRET-DATA
+            }
+        }
+        client furno2 {
+            firewall-user {
+                password "$9$WoS8NdaZU.mTDiA01hKvDikmQF"; ## SECRET-DATA
+            }
+        }
+        client furno3 {
+            firewall-user {
+                password "$9$Yv2JGP5Q9Cuz3SeMXbwz36AO1"; ## SECRET-DATA
+            }
+        }
+        client gherra1 {
+            firewall-user {
+                password "$9$ziH.3Ctp0Byrvn/u1EhvMjHqmQF"; ## SECRET-DATA
+            }
+        }
+        client gherra2 {
+            firewall-user {
+                password "$9$sm2JGUjHTQngoDkmPn6WLx-s2"; ## SECRET-DATA
+            }
+        }
+        client gherra3 {
+            firewall-user {
+                password "$9$pASv0RhcylXxdO1SeMWdVTz39uO"; ## SECRET-DATA
+            }
+        }
+        client gttextra1 {
+            firewall-user {
+                password "$9$c/tyvWLxN2gJ-VmTz3tpNdbsoJ"; ## SECRET-DATA
+            }
+        }
+        client gttextra2 {
+            firewall-user {
+                password "$9$69x39uO1RhvMXcy2aZU.mhSrKLx"; ## SECRET-DATA
+            }
+        }
+        client gttextra3 {
+            firewall-user {
+                password "$9$YOgZUjHqzF/.PIcylLXqmfz/C"; ## SECRET-DATA
+            }
+        }
+        client marletti1 {
+            firewall-user {
+                password "$9$AoAVp1Rcyl8X-/CK8LNY2n/CtBI"; ## SECRET-DATA
+            }
+        }
+        client marletti2 {
+            firewall-user {
+                password "$9$3-vG6tuBIElK8QFcleW-d5QF6tu"; ## SECRET-DATA
+            }
+        }
+        client marletti3 {
+            firewall-user {
+                password "$9$qmQF69ABIcikpB1hKvDikPz3"; ## SECRET-DATA
+            }
+        }
+        client martoglio1 {
+            firewall-user {
+                password "$9$lhTKLxdbsaZjyl2aJG.mhSre8X"; ## SECRET-DATA
+            }
+        }
+        client martoglio2 {
+            firewall-user {
+                password "$9$nizt/p0IEcKMXFnyKvWdVTz3/p0"; ## SECRET-DATA
+            }
+        }
+        client martoglio3 {
+            firewall-user {
+                password "$9$wkYaZjHqTz6VwmTQFtpNdb2JG"; ## SECRET-DATA
+            }
+        }
+        client menini1 {
+            firewall-user {
+                password "$9$h5lSKMxNd24Zylb24JHkIEcyvW"; ## SECRET-DATA
+            }
+        }
+        client menini2 {
+            firewall-user {
+                password "$9$SyvrM8Ndb4aUlKs4aGq.Ecye8X"; ## SECRET-DATA
+            }
+        }
+        client menini3 {
+            firewall-user {
+                password "$9$6Jrg9uOEcyM87CtlM8xwsFn/tBI"; ## SECRET-DATA
+            }
+        }
+        client novarese1 {
+            firewall-user {
+                password "$9$6aCb9uOhSr8X-hSgJGU.mhSre8X"; ## SECRET-DATA
+            }
+        }
+        client novarese2 {
+            firewall-user {
+                password "$9$Vbw4ajHqQF/jHORhcvMjHqPz3"; ## SECRET-DATA
+            }
+        }
+        client novarese3 {
+            firewall-user {
+                password "$9$/mZ4C0BcylLxdcy4ZUDmPcylMxN"; ## SECRET-DATA
+            }
+        }
+        client sadem1 {
+            firewall-user {
+                password "$9$Dkimfn/CuBEDimTz3tpNdbsoJ"; ## SECRET-DATA
+            }
+        }
+        client sadem2 {
+            firewall-user {
+                password "$9$uERjOEcvWLNVYuOEylKx7mfTF9A"; ## SECRET-DATA
+            }
+        }
+        client sadem3 {
+            firewall-user {
+                password "$9$/WNjC0BSreWX-/C0IEcvMjHqfFn"; ## SECRET-DATA
+            }
+        }
+        client seren1 {
+            firewall-user {
+                password "$9$N0dYgDikPT3wYfz36u0dbs2JG"; ## SECRET-DATA
+            }
+        }
+        client seren2 {
+            firewall-user {
+                password "$9$O69W1cy8X7Vs4Ecb24aiH1RhyvW"; ## SECRET-DATA
+            }
+        }
+        client seren3 {
+            firewall-user {
+                password "$9$yxolWLbs2aGivWJDikTQlKMXdb"; ## SECRET-DATA
+            }
+        }
+        client sg {
+            firewall-user {
+                password "$9$Pf3/EhylvWGD"; ## SECRET-DATA
+            }
+        }
+        client simo {
+            firewall-user {
+                password "$9$JBGHqmfzF69ikp0IEKvjHk.fz"; ## SECRET-DATA
+            }
+        }
+        client staav1 {
+            firewall-user {
+                password "$9$XGU7bsGDi.fzjHqfTQ9CX7-V24"; ## SECRET-DATA
+            }
+        }
+        client staav2 {
+            firewall-user {
+                password "$9$uSseOEcWLxdwgX7-wY2GUuO1Ere"; ## SECRET-DATA
+            }
+        }
+        client staav3 {
+            firewall-user {
+                password "$9$OCpD1cyLxNbYo7-VYg4DjO1RSKM"; ## SECRET-DATA
+            }
+        }
+        client vimu1 {
+            firewall-user {
+                password "$9$7W-s2jHqQ39JGQn/C1Is24aDi"; ## SECRET-DATA
+            }
+        }
+        client vimu2 {
+            firewall-user {
+                password "$9$N/dYgik.znCZUz69AIRYgoZik"; ## SECRET-DATA
+            }
+        }
+        client vimu3 {
+            firewall-user {
+                password "$9$sE2JGP5Q9tOHq9p0ByrJGDkfT"; ## SECRET-DATA
+            }
+        }
+        client vita1 {
+            firewall-user {
+                password "$9$gyaDiHqmF6AGDA0B1yrJGDimf"; ## SECRET-DATA
+            }
+        }
+        client vita2 {
+            firewall-user {
+                password "$9$SW5lWLX7-2oGvWGikqQzevWXdb"; ## SECRET-DATA
+            }
+        }
+        client vita3 {
+            firewall-user {
+                password "$9$006i1cyrev7dsEcs4aJHkIEclWL"; ## SECRET-DATA
+            }
+        }
+        address-assignment {
+            pool shrew-assign-pool;
+        }
+    }
+    /* Profile per accessi tramite Dynamic VPN */
+    profile dyn-vpn-access-profile {
+        client atap1 {
+            firewall-user {
+                password "$9$S15yvWLxNdVY8X7VbwJZtuO1cy"; ## SECRET-DATA
+            }
+        }
+        client atap2 {
+            firewall-user {
+                password "$9$363WnAp0BIEhruO1hcSW8Hqm536"; ## SECRET-DATA
+            }
+        }
+        client atap3 {
+            firewall-user {
+                password "$9$wIsoJGDikqfZUjq.m3nM8X-s2"; ## SECRET-DATA
+            }
+        }
+        client atap4 {
+            firewall-user {
+                password "$9$q.QF9Ap0OR/CtOB1rl4aJ"; ## SECRET-DATA
+            }
+        }
+        client atap5 {
+            firewall-user {
+                password "$9$Uzjmf369AtOFn/tpuhcYg4"; ## SECRET-DATA
+            }
+        }
+        client atap6 {
+            firewall-user {
+                password "$9$Coq/pIEevWLX-lKMXx7Y2Fn6"; ## SECRET-DATA
+            }
+        }
+        client atap7 {
+            firewall-user {
+                password "$9$CfzmuRhvWLx7VKM87N-g469C"; ## SECRET-DATA
+            }
+        }
+        client atap8 {
+            firewall-user {
+                password "$9$95.cCBIevWLX-lKMXx7Y2n/9"; ## SECRET-DATA
+            }
+        }
+        client atap9 {
+            firewall-user {
+                password "$9$6/dr9O1REylM8EcoJGU.mcyrlWx24a"; ## SECRET-DATA
+            }
+        }
+        client autostrad1 {
+            firewall-user {
+                password "$9$AkXntBIcylKvLcy2aUH5TEcylWL"; ## SECRET-DATA
+            }
+        }
+        client autostrad2 {
+            firewall-user {
+                password "$9$N5-s2aZUji.aZ/tORle4aZDqm"; ## SECRET-DATA
+            }
+        }
+        client autostrad3 {
+            firewall-user {
+                password "$9$5Tn/tuO1IctuX-wgUDCtu1cy"; ## SECRET-DATA
+            }
+        }
+        client autovigo1 {
+            firewall-user {
+                password "$9$hemcev8X7sgJevNb2aiH1RhSKM"; ## SECRET-DATA
+            }
+        }
+        client autovigo2 {
+            firewall-user {
+                password "$9$xtz7bsgoJH.5bsZjqfn6WLx-s2"; ## SECRET-DATA
+            }
+        }
+        client autovigo3 {
+            firewall-user {
+                password "$9$KynvX7dbsJUHX7YoGif5ylK8Nd"; ## SECRET-DATA
+            }
+        }
+        client bellando1 {
+            firewall-user {
+                password "$9$v2LMxNwYgaJDevwg4ZkqRhSrM8"; ## SECRET-DATA
+            }
+        }
+        client bellando2 {
+            firewall-user {
+                password "$9$XyExVw4aZDjq8X4ZGif5ylKW7-"; ## SECRET-DATA
+            }
+        }
+        client bellando3 {
+            firewall-user {
+                password "$9$8mWL-V24aGUHM82aJDmPcylMxN"; ## SECRET-DATA
+            }
+        }
+        client bouchard1 {
+            firewall-user {
+                password "$9$QQKsz/CO1RcSeApX-wsJZ.P5Q69"; ## SECRET-DATA
+            }
+        }
+        client bouchard2 {
+            firewall-user {
+                password "$9$.mQFCtuB1h36K87NY2DikmQF"; ## SECRET-DATA
+            }
+        }
+        client bouchard3 {
+            firewall-user {
+                password "$9$kq5Q/Ct0ORz3lMXxwsGDi.Tz"; ## SECRET-DATA
+            }
+        }
+        client canuto1 {
+            firewall-user {
+                password "$9$V1bgojHqf5FNdDk.Pn6WLxNwY"; ## SECRET-DATA
+            }
+        }
+        client canuto2 {
+            firewall-user {
+                password "$9$/lRi9uOcylMWx36hrevN-fTznAp"; ## SECRET-DATA
+            }
+        }
+        client canuto3 {
+            firewall-user {
+                password "$9$yE/rM8dbs4oGhS-wYgDjO1RSKM"; ## SECRET-DATA
+            }
+        }
+        client cavourese1 {
+            firewall-user {
+                password "$9$XS/xVwJGDkqf8XHmT3tpX7-V24"; ## SECRET-DATA
+            }
+        }
+        client cavourese2 {
+            firewall-user {
+                password "$9$BAm1cy8X7Vb20Bds4ZkqBIESKM"; ## SECRET-DATA
+            }
+        }
+        client cavourese3 {
+            firewall-user {
+                password "$9$XpPxVwJGDkqf8XHmT3tpX7-w4a"; ## SECRET-DATA
+            }
+        }
+        client chiesa1 {
+            firewall-user {
+                password "$9$pH4luIEvWLN-wIEMX7-2g69Ap1R"; ## SECRET-DATA
+            }
+        }
+        client chiesa2 {
+            firewall-user {
+                password "$9$4poUj5QF/9pUjT369OBbs2oUj"; ## SECRET-DATA
+            }
+        }
+        client chiesa3 {
+            firewall-user {
+                password "$9$IHURylxNdsYoyl7VwYZGp0BEre"; ## SECRET-DATA
+            }
+        }
+        client divitechrem1 {
+            firewall-user {
+                password "$9$hEcSvWxNdY2alKZjH.zFKM8Xdb"; ## SECRET-DATA
+            }
+        }
+        client divitechrem2 {
+            firewall-user {
+                password "$9$FRT0ntu1RhleW9ALNdwaJAp01cy"; ## SECRET-DATA
+            }
+        }
+        client divitechrem3 {
+            firewall-user {
+                password "$9$e/ZvxNbs2JZj8XHmfQ9CX7-w4a"; ## SECRET-DATA
+            }
+        }
+        client elsagrem2 {
+            firewall-user {
+                password "$9$JFGk.fTz9Cuk.ORhcvMjHqPz3"; ## SECRET-DATA
+            }
+        }
+        client elsagrem3 {
+            firewall-user {
+                password "$9$d6b4aGDiPfz4a39AtIRYgoGHq"; ## SECRET-DATA
+            }
+        }
+        client furno1 {
+            firewall-user {
+                password "$9$7jNwYDikTQnqmORclLXqmfTn/"; ## SECRET-DATA
+            }
+        }
+        client furno2 {
+            firewall-user {
+                password "$9$X7cxVwGDif5FHqu1EyW8Hqm536"; ## SECRET-DATA
+            }
+        }
+        client furno3 {
+            firewall-user {
+                password "$9$-IdYgik.zF/mf1hyKx7mfT3Ct"; ## SECRET-DATA
+            }
+        }
+        client gherra1 {
+            firewall-user {
+                password "$9$wIYaZGDi5T324UH.m3nM8X7bs"; ## SECRET-DATA
+            }
+        }
+        client gherra2 {
+            firewall-user {
+                password "$9$1TLRylevWdVYEcK8x7Y2n/Cp1R"; ## SECRET-DATA
+            }
+        }
+        client gherra3 {
+            firewall-user {
+                password "$9$XYt7bsYgoiHmNd2aGUmPcylMxN"; ## SECRET-DATA
+            }
+        }
+        client gttextra1 {
+            firewall-user {
+                password "$9$3-lU6tuO1ReK8Ecs4aZkqRhSrM8"; ## SECRET-DATA
+            }
+        }
+        client gttextra2 {
+            firewall-user {
+                password "$9$oqJjHqmf6/t5QclKMN-fTznAp"; ## SECRET-DATA
+            }
+        }
+        client gttextra3 {
+            firewall-user {
+                password "$9$ojJjHqmf6/t5QclKMN-fTz6tu"; ## SECRET-DATA
+            }
+        }
+        client marletti1 {
+            firewall-user {
+                password "$9$vUWW7-bs2ZUHlK4ZGif5ylKMxN"; ## SECRET-DATA
+            }
+        }
+        client marletti2 {
+            firewall-user {
+                password "$9$98cPAO1EcyM87n/lMWxwsFn/AO1"; ## SECRET-DATA
+            }
+        }
+        client marletti3 {
+            firewall-user {
+                password "$9$qmQF69ABIcikpB1hKvDikPz3"; ## SECRET-DATA
+            }
+        }
+        client martoglio1 {
+            firewall-user {
+                password "$9$k.Tz69ABIcikpB1ReKUjHq5Q"; ## SECRET-DATA
+            }
+        }
+        client martoglio2 {
+            firewall-user {
+                password "$9$xB6NwYoJGk.5LxDkqm3nM8XNwY"; ## SECRET-DATA
+            }
+        }
+        client martoglio3 {
+            firewall-user {
+                password "$9$P536Ap0Ecl.PBEhSW8HqmTn/"; ## SECRET-DATA
+            }
+        }
+        client menini1 {
+            firewall-user {
+                password "$9$WReL-V24ajHmX7ZjH.zFKM8Xdb"; ## SECRET-DATA
+            }
+        }
+        client menini2 {
+            firewall-user {
+                password "$9$-4V24GDiP5FbskP5zCAxNdw4a"; ## SECRET-DATA
+            }
+        }
+        client menini3 {
+            firewall-user {
+                password "$9$mfFnAp0Ecl5QBEcr8Lk.PQ69"; ## SECRET-DATA
+            }
+        }
+        client novarese1 {
+            firewall-user {
+                password "$9$fTn/uO1ylMuO-wY2GUuO1Ryl"; ## SECRET-DATA
+            }
+        }
+        client novarese2 {
+            firewall-user {
+                password "$9$Cg6PtBIylKxNbylaUjif5ylKW7-"; ## SECRET-DATA
+            }
+        }
+        client novarese3 {
+            firewall-user {
+                password "$9$KnkMxNs24Di.s2F/CA1Is24Zik"; ## SECRET-DATA
+            }
+        }
+        client sadem1 {
+            firewall-user {
+                password "$9$fTn/0BIcrvfTnCtuEhgoJGHq"; ## SECRET-DATA
+            }
+        }
+        client sadem2 {
+            firewall-user {
+                password "$9$Tz/CBIEyeWTz/tuOcSoJGj.P"; ## SECRET-DATA
+            }
+        }
+        client sadem3 {
+            firewall-user {
+                password "$9$Q8EKF9A1RhrK8QF9p0BSyaZUHP5"; ## SECRET-DATA
+            }
+        }
+        client staav1 {
+            firewall-user {
+                password "$9$k.TztuORcl0BIcyr8Lk.P536"; ## SECRET-DATA
+            }
+        }
+        client staav2 {
+            firewall-user {
+                password "$9$44aDiTz39tOFn/tu0hc4aZDqm"; ## SECRET-DATA
+            }
+        }
+        client staav3 {
+            firewall-user {
+                password "$9$GiDqmn/CuBE9ApBIRleGDi.Tz"; ## SECRET-DATA
+            }
+        }
+        client vimu1 {
+            firewall-user {
+                password "$9$KozMxN4aZkmTwYkP5QCAxNdbgo"; ## SECRET-DATA
+            }
+        }
+        client vimu2 {
+            firewall-user {
+                password "$9$e72vX7goJH.5bsHmfT9CX7-bgo"; ## SECRET-DATA
+            }
+        }
+        client vimu3 {
+            firewall-user {
+                password "$9$Hq5QtuOcrv69clKM-d5QF/p0"; ## SECRET-DATA
+            }
+        }
+        address-assignment {
+            pool dyn-vpn-address-pool;
+        }
+    }
+    address-assignment {
+        /* POOL per accessi tramite SHREW VPN */
+        pool shrew-assign-pool {
+            family inet {
+                network 172.17.253.0/24;
+                range shrew-range {
+                    low 172.17.253.1;
+                    high 172.17.253.254;
+                }
+                dhcp-attributes {
+                    maximum-lease-time 3600;
+                    grace-period 3600;
+                }
+                xauth-attributes {
+                    primary-dns 172.21.30.133/32;
+                }
+            }
+        }
+        /* POOL per accessi tramite Dynamic VPN */
+        pool dyn-vpn-address-pool {
+            family inet {
+                network 172.17.252.0/24;
+                range dvpn-range {
+                    low 172.17.252.1;
+                    high 172.17.252.254;
+                }
+                dhcp-attributes {
+                    maximum-lease-time 3600;
+                    grace-period 3600;
+                }
+                xauth-attributes {
+                    primary-dns 172.21.30.133/32;
+                }
+            }
+        }
+    }
+    firewall-authentication {
+        web-authentication {
+            default-profile dyn-vpn-access-profile;
+        }
+    }
+}
+applications {
+    application e11180 {
+        protocol tcp;
+        destination-port 11180;
+    }
+    application e513 {
+        protocol tcp;
+        destination-port 513;
+    }
+    application mssql1433 {
+        protocol tcp;
+        destination-port 1433;
+    }
+    application mssql1434 {
+        protocol tcp;
+        destination-port 1434;
+    }
+    application RDP {
+        protocol tcp;
+        destination-port 3389;
+    }
+    application avm-atap {
+        protocol tcp;
+        destination-port 8095;
+    }
+    application mssql1434u {
+        protocol udp;
+        destination-port 1434;
+    }
+    application vts20080 {
+        protocol tcp;
+        destination-port 20080;
+    }
+    application vts28080 {
+        protocol tcp;
+        destination-port 28080;
+    }
+    application vts20443 {
+        protocol tcp;
+        destination-port 20443;
+    }
+    application etpass-posmanager {
+        protocol tcp;
+        destination-port 50055;
+    }
+    application etpass-pospay {
+        protocol tcp;
+        destination-port 50065;
+    }
+    application etpass-ftps {
+        protocol tcp;
+        destination-port 990;
+    }
+    application etpass-ftpsdata {
+        protocol tcp;
+        destination-port 40000-49999;
+    }
+}
